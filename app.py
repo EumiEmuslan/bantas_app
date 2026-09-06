@@ -200,20 +200,25 @@ def delete_question(quiz_id, question_id):
     get_db().table("questions").delete().eq("id", question_id).execute()
     return redirect(url_for("manage_questions", quiz_id=quiz_id))
 
+@app.route("/teacher/quiz/<int:quiz_id>/delete/<int:question_id>", methods=["POST"])
+@login_required(role="teacher")
+def delete_question(quiz_id, question_id):
+    get_db().table("questions").delete() \
+        .eq("id", question_id) \
+        .eq("quiz_id", quiz_id) \
+        .eq("created_by", session["user_id"]) \
+        .execute()
+    return redirect(url_for("manage_questions", quiz_id=quiz_id))
+
 @app.route("/teacher/quiz/<int:quiz_id>/delete", methods=["POST"])
 @login_required(role="teacher")
 def delete_quiz(quiz_id):
     db = get_db()
-    db.table("questions").delete().eq("quiz_id", quiz_id).execute()
-    db.table("scores").delete().eq("quiz_id", quiz_id).execute()
-    db.table("quizzes").delete().eq("id", quiz_id).execute()
+    db.table("questions").delete().eq("quiz_id", quiz_id).eq("created_by", session["user_id"]).execute()
+    db.table("scores").delete().eq("quiz_id", quiz_id).eq("created_by", session["user_id"]).execute()
+    db.table("quizzes").delete().eq("id", quiz_id).eq("created_by", session["user_id"]).execute()
     return redirect(url_for("teacher_dashboard"))
 
-@app.route("/teacher/performance")
-@login_required(role="teacher")
-def all_students_performance():
-    performance = get_db().rpc("avg_scores").execute().data
-    return render_template("teacher_performance.html", performance=performance)
 
 # --- Lessons ---
 @app.route("/student/lessons")
@@ -251,8 +256,14 @@ def teacher_lessons():
 @app.route("/teacher/lessons/delete/<int:lesson_id>", methods=["POST"])
 @login_required(role="teacher")
 def delete_lesson(lesson_id):
-    get_db().table("lessons").delete().eq("id", lesson_id).execute()
+    db = get_db()
+    # Only delete if the lesson belongs to the logged-in teacher
+    db.table("lessons").delete() \
+        .eq("id", lesson_id) \
+        .eq("created_by", session["user_id"]) \
+        .execute()
     return redirect(url_for("teacher_lessons"))
+
 
 # --- Run the app ---
 if __name__ == "__main__":
