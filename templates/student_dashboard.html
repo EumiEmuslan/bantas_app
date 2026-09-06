@@ -6,63 +6,6 @@
   <title>Student Dashboard | Bantas</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
-   body {
-  font-family: Inter, Arial, sans-serif;
-  background: linear-gradient(135deg, #eef4ff, #f3f6fb);
-  margin: 0;
-  padding: 24px;
-}
-
-.container {
-  max-width: 900px;
-  margin: auto;
-}
-
-.card {
-  background: #fff;
-  padding: 20px 24px;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(40,62,95,.12);
-  margin-bottom: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: transform .2s, box-shadow .2s;
-}
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(40,62,95,.15);
-}
-
-.button {
-  padding: 10px 16px;
-  background: #356ae6;
-  color: #fff;
-  border-radius: 6px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: background .2s, transform .2s;
-}
-.button:hover {
-  background: #2858c9;
-  transform: translateY(-1px);
-}
-
-.finished {
-  color: green;
-  font-weight: 600;
-  padding: 10px 16px;
-  border-radius: 6px;
-  background: #e6f7e6;
-}
-
-.empty {
-  text-align: center;
-  color: #777;
-  font-style: italic;
-  margin-top: 20px;
-}
-
 /* 📱 Mobile styles */
 @media (max-width: 600px) {
   body {
@@ -77,8 +20,16 @@
 
   .card {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;   /* stretch children full width */
     gap: 12px;
+  }
+
+  /* Wrap actions in a flex column */
+  .card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
   }
 
   .button, .finished {
@@ -95,7 +46,6 @@
   }
 }
 
-
   </style>
 </head>
 <body>
@@ -109,18 +59,21 @@
       <a href="{{ url_for('student_lessons') }}" class="button">📘 Mga Aralin</a>
     </div>
 
-    {% for quiz in quizzes %}
+   {% for quiz in quizzes %}
   <div class="card">
     <span>{{ quiz['title'] }}</span>
-    {% if quiz['finished'] %}
-      <span style="color: green; font-weight: 600;">✔ Finished</span>
-    {% else %}
-      <a href="{{ url_for('student_quiz', quiz_id=quiz['id']) }}" class="button">▶ Simulan ang Quiz</a>
-    {% endif %}
+    <div class="card-actions">
+      {% if quiz['finished'] %}
+        <span class="finished">✔ Finished</span>
+      {% else %}
+        <a href="{{ url_for('student_quiz', quiz_id=quiz['id']) }}" class="button">▶ Simulan ang Quiz</a>
+      {% endif %}
+    </div>
   </div>
 {% else %}
   <div class="empty">Walang quiz na available.</div>
 {% endfor %}
+
 
   </div>
 </body>
