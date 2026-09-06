@@ -88,6 +88,7 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(40,62,95,.1);
     padding: 12px;
+    text-align: center;
   }
 
   .quiz-list td {
@@ -105,8 +106,19 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    align-items: center;
+  }
+
+  .quiz-list td:last-child form {
+    width: 100%;
+  }
+
+  .quiz-list td:last-child .button,
+  .quiz-list td:last-child button {
+    width: 100%;
   }
 }
+
 
 
     </style>
