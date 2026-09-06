@@ -7,7 +7,7 @@ import os
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-# --- Login main required decorator ---
+# --- Login required decorator ---
 def login_required(role=None):
     def wrapper(fn):
         @wraps(fn)
@@ -81,12 +81,7 @@ def logout():
     session.clear()
     return redirect(url_for("home"))
 
-# --- Student routes ---
-@app.route("/student/dashboard")
-@login_required(role="student")
-def student_dashboard():
-    quizzes = get_db().table("quizzes").select("id, title").execute().data
-    return render_template("student_dashboard.html", quizzes=quizzes)
+
 
 @app.route("/student/quiz/<int:quiz_id>", methods=["GET", "POST"])
 @login_required(role="student")
@@ -117,8 +112,82 @@ def student_quiz(quiz_id):
 
         return redirect(url_for("student_result", quiz_id=quiz_id))
 
-    questions = db.table("questions").select("id, question_text, option_a, option_b, option_c, option_d").eq("quiz_id", quiz_id).execute().data
-    return render_template("student_quiz.html", quiz_id=quiz_id, questions=questions)
+    # ✅ Fetch quiz title
+    quiz = db.table("quizzes").select("title").eq("id", quiz_id).execute().data[0]
+
+    questions = db.table("questions").select(
+        "id, question_text, option_a, option_b, option_c, option_d"
+    ).eq("quiz_id", quiz_id).execute().data
+
+    return render_template(
+        "student_quiz.html",
+        quiz_id=quiz_id,
+        quiz_title=quiz["title"],   # <-- pass title here
+        questions=questions
+    )
+
+@app.route("/teacher/quiz/<int:quiz_id>/results")
+@login_required(role="teacher")
+def quiz_results(quiz_id):
+    db = get_db()
+
+    # Get scores for this quiz
+    scores = db.table("scores") \
+        .select("user_id, score") \
+        .eq("quiz_id", quiz_id) \
+        .execute().data
+
+    # Get all questions for this quiz (with correct answers)
+    questions = db.table("questions") \
+        .select("id, correct_option") \
+        .eq("quiz_id", quiz_id) \
+        .execute().data
+    question_map = {q["id"]: q["correct_option"] for q in questions}
+
+    results = []
+    for s in scores:
+        # Fetch student name
+        user = db.table("users").select("name").eq("id", s["user_id"]).execute().data[0]
+
+        # Fetch answers for this student, but only for questions in this quiz
+        answers = db.table("answers") \
+            .select("question_id, chosen_option") \
+            .eq("user_id", s["user_id"]) \
+            .in_("question_id", list(question_map.keys())) \
+            .execute().data
+
+        # Attach correct_option from the question_map
+        for ans in answers:
+            ans["correct_option"] = question_map.get(ans["question_id"])
+
+        results.append({
+            "name": user["name"],
+            "score": s["score"],
+            "answers": answers
+        })
+
+    return render_template("teacher_results.html", results=results)
+
+
+@app.route("/student/dashboard")
+@login_required(role="student")
+def student_dashboard():
+    db = get_db()
+    user_id = session["user_id"]
+
+    # Get all quizzes
+    quizzes = db.table("quizzes").select("id, title").execute().data
+
+    # Get all scores for this student
+    scores = db.table("scores").select("quiz_id").eq("user_id", user_id).execute().data
+    finished_ids = {s["quiz_id"] for s in scores}
+
+    # Mark quizzes as finished
+    for q in quizzes:
+        q["finished"] = q["id"] in finished_ids
+
+    return render_template("student_dashboard.html", quizzes=quizzes)
+
 
 @app.route("/student/result/<int:quiz_id>")
 @login_required(role="student")
@@ -188,11 +257,7 @@ def manage_questions(quiz_id):
     questions = db.table("questions").select("id, question_text, option_a, option_b, option_c, option_d, correct_option").eq("quiz_id", quiz_id).execute().data
     return render_template("teacher_quiz_manage.html", quiz_id=quiz_id, questions=questions)
 
-@app.route("/teacher/quiz/<int:quiz_id>/results")
-@login_required(role="teacher")
-def quiz_results(quiz_id):
-    results = get_db().table("scores").select("user_id, score").eq("quiz_id", quiz_id).execute().data
-    return render_template("teacher_results.html", results=results)
+
 
 @app.route("/teacher/quiz/<int:quiz_id>/delete/<int:question_id>", methods=["POST"])
 @login_required(role="teacher")
@@ -213,6 +278,7 @@ def delete_quiz(quiz_id):
 @login_required(role="teacher")
 def all_students_performance():
     performance = get_db().rpc("avg_scores").execute().data
+
     return render_template("teacher_performance.html", performance=performance)
 
 # --- Lessons ---
@@ -222,15 +288,7 @@ def student_lessons():
     lessons = get_db().table("lessons").select("id, title, description").execute().data
     return render_template("student_lessons.html", lessons=lessons)
 
-@app.route("/student/lessons/bantas")
-@login_required(role="student")
-def lesson_bantas():
-    return render_template("lesson_bantas.html")
 
-@app.route("/student/lessons/halimbawa")
-@login_required(role="student")
-def lesson_halimbawa():
-    return render_template("lesson_halimbawa.html")
 
 @app.route("/teacher/lessons", methods=["GET", "POST"])
 @login_required(role="teacher")
