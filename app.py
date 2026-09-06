@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from db import get_db   # ✅ import Supabase client from db.py
+from init_db import get_db   # ✅ import Supabase client from db.py
 import os
 
 app = Flask(__name__)
@@ -212,7 +212,7 @@ def delete_quiz(quiz_id):
 @app.route("/teacher/performance")
 @login_required(role="teacher")
 def all_students_performance():
-    performance = get_db().table("scores").select("user_id, avg(score)").execute().data
+    performance = get_db().rpc("avg_scores").execute().data
     return render_template("teacher_performance.html", performance=performance)
 
 # --- Lessons ---
