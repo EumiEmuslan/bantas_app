@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Quiz | Bantas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: Inter, Arial, sans-serif;
+            background: #f3f6fb;
+            margin: 0;
+            padding: 24px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(40,62,95,.12);
+        }
+        h1 { margin-top: 0; }
+        form { margin-bottom: 30px; }
+        label {
+            display: block;
+            margin: 12px 0 6px;
+            font-weight: 600;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d6deea;
+            border-radius: 6px;
+        }
+        button, a.button {
+            margin-top: 16px;
+            padding: 10px 16px;
+            background: #356ae6;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+        }
+        button:hover, a.button:hover { background: #2858c9; }
+        .button-danger { background: #e63946; }
+        .button-danger:hover { background: #c5303d; }
+        .button-exit { background: #6c757d; }
+        .button-exit:hover { background: #5a6268; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #e4eaf3;
+            text-align: left;
+        }
+        th {
+            background: #f8fbff;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Manage Questions</h1>
+
+        <!-- Question creation form -->
+        <form method="POST" action="{{ url_for('manage_questions', quiz_id=quiz_id) }}">
+            <label for="question_text">Question</label>
+            <input type="text" id="question_text" name="question_text" required>
+
+            <label>Option A</label>
+            <input type="text" name="option_a" required>
+
+            <label>Option B</label>
+            <input type="text" name="option_b" required>
+
+            <label>Option C</label>
+            <input type="text" name="option_c" required>
+
+            <label>Option D</label>
+            <input type="text" name="option_d" required>
+
+            <label for="correct_option">Correct Option</label>
+            <select id="correct_option" name="correct_option" required>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+            </select>
+
+            <button type="submit">➕ Add Question</button>
+        </form>
+
+        <!-- Exit button -->
+        <a href="{{ url_for('teacher_dashboard') }}" class="button button-exit">⬅ Exit to Dashboard</a>
+
+        <h2>Existing Questions</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Question</th>
+                    <th>Options</th>
+                    <th>Correct</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for q in questions %}
+                <tr>
+                    <td>{{ q['question_text'] }}</td>
+                    <td>
+                        A: {{ q['option_a'] }}<br>
+                        B: {{ q['option_b'] }}<br>
+                        C: {{ q['option_c'] }}<br>
+                        D: {{ q['option_d'] }}
+                    </td>
+                    <td>{{ q['correct_option'] }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('delete_question', quiz_id=quiz_id, question_id=q['id']) }}" style="display:inline;">
+                            <button type="submit" class="button button-danger">🗑 Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4">No questions yet. Add one above.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

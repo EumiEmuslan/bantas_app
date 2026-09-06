@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiz | Bantas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Pagsusulit #{{ quiz_id }}</h1>
+        <form method="POST">
+            {% for q in questions %}
+                <div>
+                    <p><strong>{{ q['question_text'] }}</strong></p>
+                    <label><input type="radio" name="{{ q['id'] }}" value="A" required> A: {{ q['option_a'] }}</label><br>
+                    <label><input type="radio" name="{{ q['id'] }}" value="B"> B: {{ q['option_b'] }}</label><br>
+                    <label><input type="radio" name="{{ q['id'] }}" value="C"> C: {{ q['option_c'] }}</label><br>
+                    <label><input type="radio" name="{{ q['id'] }}" value="D"> D: {{ q['option_d'] }}</label>
+                </div>
+                <hr>
+            {% endfor %}
+            <button type="submit">Isumete ang pagsusulit</button>
+        </form>
+    </div>
+</body>
+</html>

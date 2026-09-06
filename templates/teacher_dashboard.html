@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Dashboard | Bantas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: Inter, Arial, sans-serif;
+            background: #f3f6fb;
+            margin: 0;
+            padding: 24px;
+        }
+        .dashboard {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(40,62,95,.12);
+        }
+        h1 { margin-top: 0; color: #172033; }
+        .top-actions {
+            margin-bottom: 20px;
+        }
+        .quiz-list {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .quiz-list th, .quiz-list td {
+            padding: 12px;
+            border-bottom: 1px solid #e4eaf3;
+            text-align: left;
+        }
+        .quiz-list th {
+            background: #f8fbff;
+            font-weight: 600;
+        }
+        .button {
+            display: inline-block;
+            padding: 8px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background .2s, transform .2s;
+        }
+        .button-primary {
+            background: #356ae6;
+            color: #fff;
+        }
+        .button-primary:hover { background: #2858c9; transform: translateY(-1px); }
+        .button-danger {
+            background: #e63946;
+            color: #fff;
+        }
+        .button-danger:hover { background: #c5303d; transform: translateY(-1px); }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <img src="{{ url_for('static', filename='images/teacher_dashboard_banners.png') }}" 
+     alt="Teacher Dashboard Banner" 
+     style="width:100%; border-radius:12px; margin:16px 0;">
+        <p>Manage your quizzes and view student results.</p>
+
+       <div class="top-actions">
+  <a href="{{ url_for('new_quiz') }}" class="button button-primary">➕ Gumawa ng Bagong Quiz</a>
+  <a href="{{ url_for('all_students_performance') }}" class="button button-primary">📊 View Student Performance</a>
+
+  <a href="{{ url_for('teacher_lessons') }}" class="button button-primary">📘 Mangasiwa ng Mga Aralin</a>
+
+
+</div>
+
+
+        <table class="quiz-list">
+            <thead>
+                <tr>
+                    <th>Quiz Title</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quiz in quizzes %}
+                <tr>
+                    <td>{{ quiz['title'] }}</td>
+                    <td>
+                        <a href="{{ url_for('manage_questions', quiz_id=quiz['id']) }}" class="button button-primary">Manage Questions</a>
+                        <a href="{{ url_for('quiz_results', quiz_id=quiz['id']) }}" class="button button-primary">View Results</a>
+                        <form method="POST" action="{{ url_for('delete_quiz', quiz_id=quiz['id']) }}" style="display:inline;">
+                            <button type="submit" class="button button-danger">🗑 Tanggalin</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2">Walang quiz na available, gumawa ng bagong quiz.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

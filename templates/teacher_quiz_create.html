@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Quiz | Bantas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: Inter, Arial, sans-serif;
+            background: #f3f6fb;
+            margin: 0;
+            padding: 24px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(40,62,95,.12);
+        }
+        h1 { margin-top: 0; }
+        label {
+            display: block;
+            margin: 12px 0 6px;
+            font-weight: 600;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d6deea;
+            border-radius: 6px;
+        }
+        button {
+            margin-top: 16px;
+            padding: 10px 16px;
+            background: #356ae6;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover { background: #2858c9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gumawa ng Bagong Quiz</h1>
+        <p>Ilagay ang pamagat ng iyong quiz sa ibaba. Pagkatapos ng paglikha, babalik ka para i-manage ang mga tanong.</p>
+
+        <form method="POST" action="{{ url_for('new_quiz') }}">
+            <label for="title">Quiz Title</label>
+            <input type="text" id="title" name="title" required>
+            <button type="submit">➕ Idagdag ang Quiz</button>
+        </form>
+    </div>
+</body>
+</html>

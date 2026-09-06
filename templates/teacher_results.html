@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiz Results | Bantas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: Inter, Arial, sans-serif;
+            background: #f3f6fb;
+            margin: 0;
+            padding: 24px;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(40,62,95,.12);
+        }
+        h1 { margin-top: 0; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #e4eaf3;
+            text-align: left;
+        }
+        th {
+            background: #f8fbff;
+            font-weight: 600;
+        }
+        .score {
+            font-weight: 700;
+            color: #356ae6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Results for Quiz: {{ results[0]['title'] if results else 'Unknown Quiz' }}</h1>
+        <p>Below are the students who completed this quiz, their scores, and answers.</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Student Name</th>
+                    <th>Score</th>
+                    <th>Answers</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in results %}
+                <tr>
+                    <td>{{ r['name'] }}</td>
+                    <td class="score">{{ r['score'] }}</td>
+                    <td>
+                        <!-- If you also fetch answers per student, loop them here -->
+                        {% if r['answers'] %}
+                            {% for ans in r['answers'] %}
+                                Q{{ ans['question_id'] }}: {{ ans['chosen_option'] }} 
+                                {% if ans['chosen_option'] == ans['correct_option'] %}
+                                    ✔
+                                {% else %}
+                                    ✘ (Correct: {{ ans['correct_option'] }})
+                                {% endif %}
+                                <br>
+                            {% endfor %}
+                        {% else %}
+                            No answers recorded.
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3">No students have taken this quiz yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

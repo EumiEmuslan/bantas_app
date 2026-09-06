@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Performance | Bantas</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      font-family: Inter, Arial, sans-serif;
+      background: #f3f6fb;
+      margin: 0;
+      padding: 24px;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: #fff;
+      padding: 32px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(40,62,95,.12);
+    }
+    h1 { margin-top: 0; color: #172033; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #e4eaf3;
+      text-align: left;
+    }
+    th {
+      background: #f8fbff;
+      font-weight: 600;
+    }
+    .empty {
+      text-align: center;
+      color: #777;
+      font-style: italic;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Overall Student Performance</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Average Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in performance %}
+        <tr>
+          <td>{{ s['name'] }}</td>
+          <td>{{ "%.2f"|format(s['avg_score']) }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="2" class="empty">No performance data yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

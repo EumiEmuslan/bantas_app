@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Lessons | Bantas</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(135deg, #eef4ff, #f3f6fb);
+      margin: 0;
+      padding: 24px;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: #fff;
+      padding: 32px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(40,62,95,.12);
+    }
+    h1 { color: #172033; }
+    .lesson-card {
+      background: #f8fbff;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(40,62,95,.08);
+    }
+    .lesson-card h2 {
+      margin-top: 0;
+      color: #356ae6;
+    }
+    .actions {
+      margin-top: 12px;
+    }
+    .actions button {
+      margin-right: 8px;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .add-form {
+      margin-bottom: 24px;
+    }
+    .add-form input, .add-form textarea {
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .add-form button {
+      background: #356ae6;
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+  <h1>Pangasiwaan ang mga Aralin</h1>
+  <p>Here you can add, edit, or delete lessons for your students.</p>
+
+  <!-- Add Lesson Form -->
+  <form method="POST" class="add-form">
+    <input type="text" name="title" placeholder="Lesson Title" required>
+    <textarea name="description" placeholder="Lesson Description"></textarea>
+    <button type="submit">➕ Magdagdag ng Aralin</button>
+  </form>
+
+  <!-- Exit to Dashboard Button -->
+  <div style="margin-top:20px;">
+    <a href="{{ url_for('teacher_dashboard') }}" 
+       style="display:inline-block; background:#356ae6; color:#fff; padding:10px 16px; border-radius:6px; text-decoration:none;">
+       ⬅ Bumalik sa Dashboard
+    </a>
+  </div>
+
+  <!-- Dynamic Lesson Cards -->
+  {% for lesson in lessons %}
+    <div class="lesson-card">
+      <h2>{{ lesson.title }}</h2>
+      <p>{{ lesson.description }}</p>
+      <div class="actions">
+        <form method="POST" action="{{ url_for('delete_lesson', lesson_id=lesson.id) }}">
+          <button type="submit" style="background:#e63946; color:#fff;">Tanggalin</button>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+</body>
+</html>
