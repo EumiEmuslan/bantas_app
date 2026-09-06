@@ -1,21 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-import psycopg2
-import psycopg2.extras   # ✅ for RealDictCursor
-import os
-from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-
-# Load environment variables from .env
-load_dotenv()
+from db import get_db   # ✅ import Supabase client from db.py
+import os
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)  # ✅ safer than "secret123"
-
-# --- Database helper ---
-def get_db():
-    conn = psycopg2.connect(os.environ.get("SUPABASE_URL"))
-    return conn
+app.secret_key = os.urandom(24)
 
 # --- Login required decorator ---
 def login_required(role=None):
@@ -43,25 +33,22 @@ def login():
         email = request.form["email"]
         password = request.form["password"]
 
-        conn = get_db()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute("SELECT id, role, password FROM users WHERE email=%s", (email,))
-        user = cur.fetchone()
-        cur.close()
-        conn.close()
+        db = get_db()
+        result = db.table("users").select("id, role, password").eq("email", email).execute()
 
-        if user and check_password_hash(user["password"], password):
-            session["user_id"] = user["id"]
-            session["role"] = user["role"]
+        if result.data and check_password_hash(result.data[0]["password"], password):
+            session["user_id"] = result.data[0]["id"]
+            session["role"] = result.data[0]["role"]
 
-            if user["role"] == "student":
+            if result.data[0]["role"] == "student":
                 return redirect(url_for("student_dashboard"))
-            elif user["role"] == "teacher":
+            elif result.data[0]["role"] == "teacher":
                 return redirect(url_for("teacher_dashboard"))
         else:
-         flash("Wrong email or password.")
-         return redirect(url_for("login"))
+            flash("Wrong email or password.")
+            return redirect(url_for("login"))
 
+    return render_template("login.html")
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
@@ -71,20 +58,21 @@ def signup():
         password = request.form["password"]
 
         hashed_pw = generate_password_hash(password)
+        role = "student"
 
-        role = "student"  # ✅ default role
+        db = get_db()
+        result = db.table("users").insert({
+            "name": name,
+            "email": email,
+            "password": hashed_pw,
+            "role": role
+        }).execute()
 
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute("INSERT INTO users (name,email,password,role) VALUES (%s,%s,%s,%s)",
-                    (name,email,hashed_pw,role))
-        conn.commit()
-        cur.close()
-        conn.close()
-        return redirect(url_for("home"))
-    return render_template("signup.html")
-
-
+        if result.data:
+            return redirect(url_for("home"))
+        else:
+            flash("Signup failed. Please try again.")
+            return redirect(url_for("signup"))
 
     return render_template("signup.html")
 
@@ -97,95 +85,69 @@ def logout():
 @app.route("/student/dashboard")
 @login_required(role="student")
 def student_dashboard():
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT id, title FROM quizzes")
-    quizzes = cur.fetchall()
-    cur.close()
-    conn.close()
+    quizzes = get_db().table("quizzes").select("id, title").execute().data
     return render_template("student_dashboard.html", quizzes=quizzes)
 
 @app.route("/student/quiz/<int:quiz_id>", methods=["GET", "POST"])
 @login_required(role="student")
 def student_quiz(quiz_id):
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    db = get_db()
 
     if request.method == "POST":
         user_id = session["user_id"]
         score = 0
 
-        cur.execute("SELECT id, correct_option FROM questions WHERE quiz_id=%s", (quiz_id,))
-        questions = cur.fetchall()
+        questions = db.table("questions").select("id, correct_option").eq("quiz_id", quiz_id).execute().data
 
         for q in questions:
             chosen = request.form.get(str(q["id"]))
-            cur.execute("INSERT INTO answers (user_id, question_id, chosen_option) VALUES (%s,%s,%s)",
-                        (user_id, q["id"], chosen))
+            db.table("answers").insert({
+                "user_id": user_id,
+                "question_id": q["id"],
+                "chosen_option": chosen
+            }).execute()
             if chosen == q["correct_option"]:
                 score += 1
 
-        cur.execute("INSERT INTO scores (user_id, quiz_id, score) VALUES (%s,%s,%s)",
-                    (user_id, quiz_id, score))
-        conn.commit()
-        cur.close()
-        conn.close()
+        db.table("scores").insert({
+            "user_id": user_id,
+            "quiz_id": quiz_id,
+            "score": score
+        }).execute()
+
         return redirect(url_for("student_result", quiz_id=quiz_id))
 
-    cur.execute("SELECT id, question_text, option_a, option_b, option_c, option_d FROM questions WHERE quiz_id=%s", (quiz_id,))
-    questions = cur.fetchall()
-    cur.close()
-    conn.close()
+    questions = db.table("questions").select("id, question_text, option_a, option_b, option_c, option_d").eq("quiz_id", quiz_id).execute().data
     return render_template("student_quiz.html", quiz_id=quiz_id, questions=questions)
 
 @app.route("/student/result/<int:quiz_id>")
 @login_required(role="student")
 def student_result(quiz_id):
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    db = get_db()
     user_id = session["user_id"]
-    cur.execute("SELECT score FROM scores WHERE user_id=%s AND quiz_id=%s", (user_id, quiz_id))
-    score = cur.fetchone()
-    cur.close()
-    conn.close()
-    if score:
-        return render_template("student_result.html", score=score["score"])
+    result = db.table("scores").select("score").eq("user_id", user_id).eq("quiz_id", quiz_id).execute()
+
+    if result.data:
+        return render_template("student_result.html", score=result.data[0]["score"])
     else:
         return "No score found."
 
 @app.route("/student/performance/<int:user_id>")
 @login_required(role="student")
 def student_performance(user_id):
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
-        SELECT q.title, s.score
-        FROM scores s
-        JOIN quizzes q ON s.quiz_id = q.id
-        WHERE s.user_id = %s
-    """, (user_id,))
-    results = cur.fetchall()
-
+    db = get_db()
+    results = db.table("scores").select("quiz_id, score").eq("user_id", user_id).execute().data
     avg_score = None
     if results:
         total = sum(r["score"] for r in results)
         avg_score = total / len(results)
-
-    cur.close()
-    conn.close()
     return render_template("student_performance.html", results=results, avg_score=avg_score)
 
 # --- Teacher routes ---
 @app.route("/teacher/dashboard")
 @login_required(role="teacher")
 def teacher_dashboard():
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT id, title FROM quizzes")
-    quizzes = cur.fetchall()
-    cur.close()
-    conn.close()
+    quizzes = get_db().table("quizzes").select("id, title").execute().data
     return render_template("teacher_dashboard.html", quizzes=quizzes)
 
 @app.route("/teacher/quiz/new", methods=["GET", "POST"])
@@ -193,24 +155,18 @@ def teacher_dashboard():
 def new_quiz():
     if request.method == "POST":
         title = request.form["title"]
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO quizzes (title, created_by) VALUES (%s, %s) RETURNING id",
-            (title, session["user_id"])
-        )
-        quiz_id = cur.fetchone()[0]
-        conn.commit()
-        cur.close()
-        conn.close()
+        result = get_db().table("quizzes").insert({
+            "title": title,
+            "created_by": session["user_id"]
+        }).execute()
+        quiz_id = result.data[0]["id"]
         return redirect(url_for("manage_questions", quiz_id=quiz_id))
     return render_template("teacher_quiz_create.html")
 
 @app.route("/teacher/quiz/<int:quiz_id>/questions", methods=["GET", "POST"])
 @login_required(role="teacher")
 def manage_questions(quiz_id):
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    db = get_db()
     if request.method == "POST":
         q_text = request.form["question_text"]
         a = request.form["option_a"]
@@ -219,94 +175,52 @@ def manage_questions(quiz_id):
         d = request.form["option_d"]
         correct = request.form["correct_option"]
 
-        cur.execute("""INSERT INTO questions 
-                       (quiz_id, question_text, option_a, option_b, option_c, option_d, correct_option) 
-                       VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-                    (quiz_id, q_text, a, b, c, d, correct))
-        conn.commit()
-    cur.execute("SELECT id, question_text, option_a, option_b, option_c, option_d, correct_option FROM questions WHERE quiz_id=%s", (quiz_id,))
-    questions = cur.fetchall()
-    cur.close()
-    conn.close()
+        db.table("questions").insert({
+            "quiz_id": quiz_id,
+            "question_text": q_text,
+            "option_a": a,
+            "option_b": b,
+            "option_c": c,
+            "option_d": d,
+            "correct_option": correct
+        }).execute()
+
+    questions = db.table("questions").select("id, question_text, option_a, option_b, option_c, option_d, correct_option").eq("quiz_id", quiz_id).execute().data
     return render_template("teacher_quiz_manage.html", quiz_id=quiz_id, questions=questions)
 
 @app.route("/teacher/quiz/<int:quiz_id>/results")
 @login_required(role="teacher")
 def quiz_results(quiz_id):
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
-        SELECT u.name, s.score, q.title
-        FROM scores s
-        JOIN users u ON s.user_id = u.id
-        JOIN quizzes q ON s.quiz_id = q.id
-        WHERE q.id = %s
-    """, (quiz_id,))
-    results = cur.fetchall()
-    cur.close()
-    conn.close()
+    results = get_db().table("scores").select("user_id, score").eq("quiz_id", quiz_id).execute().data
     return render_template("teacher_results.html", results=results)
 
 @app.route("/teacher/quiz/<int:quiz_id>/delete/<int:question_id>", methods=["POST"])
 @login_required(role="teacher")
 def delete_question(quiz_id, question_id):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM questions WHERE id=%s", (question_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
+    get_db().table("questions").delete().eq("id", question_id).execute()
     return redirect(url_for("manage_questions", quiz_id=quiz_id))
 
 @app.route("/teacher/quiz/<int:quiz_id>/delete", methods=["POST"])
 @login_required(role="teacher")
 def delete_quiz(quiz_id):
-    conn = get_db()
-    cur = conn.cursor()
-    # First delete questions linked to the quiz (to avoid foreign key issues)
-    cur.execute("DELETE FROM questions WHERE quiz_id=%s", (quiz_id,))
-    # Then delete scores linked to the quiz
-    cur.execute("DELETE FROM scores WHERE quiz_id=%s", (quiz_id,))
-    # Finally delete the quiz itself
-    cur.execute("DELETE FROM quizzes WHERE id=%s", (quiz_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
+    db = get_db()
+    db.table("questions").delete().eq("quiz_id", quiz_id).execute()
+    db.table("scores").delete().eq("quiz_id", quiz_id).execute()
+    db.table("quizzes").delete().eq("id", quiz_id).execute()
     return redirect(url_for("teacher_dashboard"))
 
-# --- Teacher performance route (new) ---
 @app.route("/teacher/performance")
 @login_required(role="teacher")
 def all_students_performance():
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    # Collect each student’s average score
-    cur.execute("""
-        SELECT u.id, u.name, AVG(s.score) AS avg_score
-        FROM scores s
-        JOIN users u ON s.user_id = u.id
-        WHERE u.role = 'student'
-        GROUP BY u.id, u.name
-        ORDER BY avg_score DESC
-    """)
-    performance = cur.fetchall()
-    cur.close()
-    conn.close()
+    performance = get_db().table("scores").select("user_id, avg(score)").execute().data
     return render_template("teacher_performance.html", performance=performance)
 
-
+# --- Lessons ---
 @app.route("/student/lessons")
 @login_required(role="student")
 def student_lessons():
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT id, title, description FROM lessons")
-    lessons = cur.fetchall()
-    cur.close()
-    conn.close()
+    lessons = get_db().table("lessons").select("id, title, description").execute().data
     return render_template("student_lessons.html", lessons=lessons)
-
 
 @app.route("/student/lessons/bantas")
 @login_required(role="student")
@@ -321,35 +235,24 @@ def lesson_halimbawa():
 @app.route("/teacher/lessons", methods=["GET", "POST"])
 @login_required(role="teacher")
 def teacher_lessons():
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
+    db = get_db()
     if request.method == "POST":
         title = request.form["title"]
         description = request.form["description"]
-        cur.execute(
-            "INSERT INTO lessons (title, description, created_by) VALUES (%s, %s, %s)",
-            (title, description, session["user_id"])
-        )
-        conn.commit()
+        db.table("lessons").insert({
+            "title": title,
+            "description": description,
+            "created_by": session["user_id"]
+        }).execute()
 
-    cur.execute("SELECT id, title, description FROM lessons WHERE created_by=%s", (session["user_id"],))
-    lessons = cur.fetchall()
-    cur.close()
-    conn.close()
+    lessons = db.table("lessons").select("id, title, description").eq("created_by", session["user_id"]).execute().data
     return render_template("teacher_lessons.html", lessons=lessons)
+
 @app.route("/teacher/lessons/delete/<int:lesson_id>", methods=["POST"])
 @login_required(role="teacher")
 def delete_lesson(lesson_id):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM lessons WHERE id=%s", (lesson_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
+    get_db().table("lessons").delete().eq("id", lesson_id).execute()
     return redirect(url_for("teacher_lessons"))
-
-
 
 # --- Run the app ---
 if __name__ == "__main__":
