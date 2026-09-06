@@ -6,7 +6,7 @@
     <title>Teacher Dashboard | Bantas</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        body {
+body {
   font-family: Inter, Arial, sans-serif;
   background: #f3f6fb;
   margin: 0;
@@ -71,16 +71,43 @@
     text-align: center;
   }
 
-  .quiz-list {
-    display: block;
-    overflow-x: auto;
+  /* Hide table headers on mobile */
+  .quiz-list thead {
+    display: none;
   }
 
-  .quiz-list th, .quiz-list td {
-    padding: 8px;
-    font-size: 0.9rem;
+  /* Turn rows into cards */
+  .quiz-list, .quiz-list tbody, .quiz-list tr, .quiz-list td {
+    display: block;
+    width: 100%;
+  }
+
+  .quiz-list tr {
+    margin-bottom: 16px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(40,62,95,.1);
+    padding: 12px;
+  }
+
+  .quiz-list td {
+    border: none;
+    padding: 8px 0;
+  }
+
+  .quiz-list td:first-child {
+    font-weight: 600;
+    color: #172033;
+    margin-bottom: 8px;
+  }
+
+  .quiz-list td:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 }
+
 
     </style>
 </head>

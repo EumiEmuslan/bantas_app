@@ -6,7 +6,7 @@
   <title>Student Dashboard | Bantas</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
-    body {
+   body {
   font-family: Inter, Arial, sans-serif;
   background: linear-gradient(135deg, #eef4ff, #f3f6fb);
   margin: 0;
@@ -48,6 +48,14 @@
   transform: translateY(-1px);
 }
 
+.finished {
+  color: green;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 6px;
+  background: #e6f7e6;
+}
+
 .empty {
   text-align: center;
   color: #777;
@@ -62,8 +70,8 @@
   }
 
   .top-actions {
+    display: flex;
     flex-direction: column;
-    align-items: stretch;
     gap: 10px;
   }
 
@@ -73,7 +81,7 @@
     gap: 12px;
   }
 
-  .button {
+  .button, .finished {
     width: 100%;
     text-align: center;
   }
@@ -86,6 +94,7 @@
     font-size: 0.95rem;
   }
 }
+
 
   </style>
 </head>
